@@ -2,9 +2,8 @@ package tree
 
 import (
     "errors"
+    "sort"
 )
-
-const ROOT_ID = 0
 
 type Record struct {
     ID, Parent int
@@ -15,133 +14,58 @@ type Node struct {
     Children []*Node
 }
 
-type NodeMap map[int]*Node
-
 func Build(records []Record) (*Node, error) {
     if len(records) == 0 {
         return nil, nil
     }
 
-    nodes := make(NodeMap)
-    nodeCount := 0
-    for i := 0; i < len(records); i++ { 
-        currentRecord := &records[i]
+    sort.Slice(records, func(i, j int) bool {
+                            return records[i].ID < records[j].ID
+                        })
 
-        if !IsValidRecord(records, currentRecord) {
+    if !IsRootRecord(&records[0]) {
+        return nil, errors.New("Root record not found")
+    }
+
+    rootNode := CreateNode(records[0].ID)
+
+    nodeList := make([]*Node, len(records))
+    nodeList[0] = rootNode
+    nodeCount := 1
+
+    for i := 1; i < len(records); i++ { 
+        current:= &records[i]
+        if current.ID != i || current.Parent >= current.ID {
             return nil, errors.New("Invalid record.")
         }
 
-        node, isNew := CreateOrGetNode(nodes, currentRecord.ID);
-        if isNew {
-            nodeCount++
-        }
+        childNode := CreateNode(current.ID)
+        nodeList[i] = childNode
+        nodeCount++
 
-        if IsRootRecord(currentRecord) {
-            continue
+        parentNode := nodeList[current.Parent]
+        if parentNode == nil {
+            return nil, errors.New("Unexpected error")
         }
-
-        parentNode, isNew := CreateOrGetNode(nodes, currentRecord.Parent);
-        if isNew {
-            nodeCount++
-        }
-
-        if err := CheckParentChildNodesAreValid(parentNode, node);
-        err != nil {
-            return nil, err
-        }
-
-        if node != parentNode {
-            InsertChildInOrder(parentNode, node)
-        }
+        InsertChild(parentNode, childNode)
     }
 
-
-    if len(records) != nodeCount {
-        return nil, errors.New("Number of records doesn't match nodes created.")
-    }
-
-    if root := GetRootNode(nodes); root != nil {
-        return root, nil
-    }
-    return nil, errors.New("Root node doesn't exist.")
-}
-
-func IsValidRecord(records []Record, record *Record) bool {
-    return IsValidID(len(records), record.ID) &&
-    IsValidID(len(records), record.Parent) &&
-    (record.Parent < record.ID || IsRootRecord(record))
-}
-
-func IsValidID(LIMIT, ID int) bool {
-    return 0 <= ID && ID < LIMIT
+    return rootNode, nil
 }
 
 func IsRootRecord(record *Record) bool {
-    return record.ID == ROOT_ID && record.Parent == ROOT_ID
+    return record.ID == 0 && record.Parent == 0
 }
 
-func CreateOrGetNode(nodes NodeMap, ID int) (*Node, bool) {
-    node := nodes[ID]
-    if node != nil {
-        return node, false
-    }
-
-    node = new(Node)
+func CreateNode(ID int) *Node {
+    node := new(Node)
     node.ID = ID
-    nodes[ID] = node
-    return node, true;
+    return node
 }
 
-func CheckParentChildNodesAreValid(parent, child *Node) (error) {
-    if child == parent {
-        return errors.New("Parent and child are the same node.")
-    }
-
-    if child.ID < parent.ID {
-        return errors.New("Parent ID is greater than child ID.")
-    }
-
-    if child.ID == parent.ID {
-        return errors.New("Parent and Child IDs are the same.")
-    }
-    return nil
-}
-
-func IsRootNode(node *Node) bool {
-    return node.ID == 0
-}
-
-func GetRootNode(nodes NodeMap) *Node {
-    return nodes[0]
-}
-
-func InsertChildInOrder(parent, child *Node) {
+func InsertChild(parent, child *Node) {
     if parent.Children == nil {
         parent.Children = make([]*Node, 0)
     }
-    insertIndex := GetInsertIndexForChild(parent, child)
-
-    if insertIndex == len(parent.Children) {
-        parent.Children = append(parent.Children, child)
-    } else {
-        parent.Children = append(parent.Children, nil)
-        copy(parent.Children[insertIndex+1:], parent.Children[insertIndex:])
-        parent.Children[insertIndex] = child
-    }
-}
-
-func GetInsertIndexForChild(parent, child *Node) int {
-    insertIndex := -1
-    for j := 0; j < len(parent.Children); j++ {
-        parentChild := parent.Children[j]
-        if parentChild.ID > child.ID {
-            insertIndex = j
-            break
-        }
-    }
-
-    if insertIndex == -1 {
-        insertIndex = len(parent.Children)
-    }
-    return insertIndex
+    parent.Children = append(parent.Children, child)
 }
