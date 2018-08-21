@@ -40,21 +40,22 @@ func GetOrdinalString(i int) (string, error) {
     return "", errors.New("Unsupported ordinal number.")
 }
 
-const SPRINTF_PREFIX = "On the %s day of Christmas my true love gave to me, %s"
 func GetVerseStart(day int) (string, error) {
     ordinalString, err := GetOrdinalString(day)
     if err != nil {
         return "", err
     }
-    return fmt.Sprintf(SPRINTF_PREFIX, ordinalString, GIFTS[day-1]), nil
+    return fmt.Sprintf("On the %s day of Christmas my true love gave to me, %s",
+                        ordinalString,
+                        GIFTS[day-1]), nil
 }
 
 func Song() string {
     buffer := bytes.Buffer{}
 
     for day := 1; day <= 12; day++ {
-        song := Verse(day)
-        buffer.WriteString(song)
+        verse := Verse(day)
+        buffer.WriteString(verse)
         buffer.WriteString("\n")
     }
 
@@ -64,8 +65,8 @@ func Song() string {
 func Verse(day int) string {
     buffer := bytes.Buffer{}
 
-    firstVerse, _ := GetVerseStart(day)
-    buffer.WriteString(firstVerse)
+    verse, _ := GetVerseStart(day)
+    buffer.WriteString(verse)
 
     if needsMoreGifts := (day-1 > 0); needsMoreGifts {
         RecursiveVerseBuild(day-1, &buffer)
@@ -77,11 +78,11 @@ func Verse(day int) string {
 
 func RecursiveVerseBuild(day int, writer io.Writer) {
     if day == 1 {
-        verse := ", and " + GIFTS[day-1]
+        verseBuild := ", and " + GIFTS[day-1]
         writer.Write([]byte(verse))
         return
     }
-    verse := ", " + GIFTS[day-1]
-    writer.Write([]byte(verse))
+    verseBuild := ", " + GIFTS[day-1]
+    writer.Write([]byte(verseBuild))
     RecursiveVerseBuild(day-1, writer)
 }
