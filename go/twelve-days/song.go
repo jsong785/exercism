@@ -1,7 +1,7 @@
 package twelve
 
 import (
-    "buffer"
+    "bytes"
     "errors"
     "fmt"
     "io"
@@ -31,7 +31,7 @@ func GetOrdinalString(i int) (string, error) {
         case 5: return "fifth", nil
         case 6: return "sixth", nil
         case 7: return "seventh", nil
-        case 8: return "eight", nil
+        case 8: return "eighth", nil
         case 9: return "ninth", nil
         case 10: return "tenth", nil
         case 11: return "eleventh", nil
@@ -40,34 +40,48 @@ func GetOrdinalString(i int) (string, error) {
     return "", errors.New("Unsupported ordinal number.")
 }
 
-const SPRINTF_PREFIX = "On the %s day of Christmas my true love gave to me,"
-
-func GetPrefix(i int) (string, error) {
-    ordinalString, err := GetOrdinalString(i)
+const SPRINTF_PREFIX = "On the %s day of Christmas my true love gave to me, %s"
+func GetVerseStart(day int) (string, error) {
+    ordinalString, err := GetOrdinalString(day)
     if err != nil {
         return "", err
     }
-    return fmt.Sprintf(SPRINTF_PREFIX, ordinalString), nil
+    return fmt.Sprintf(SPRINTF_PREFIX, ordinalString, GIFTS[day-1]), nil
 }
 
 func Song() string {
-    var song string
+    buffer := bytes.Buffer{}
+
     for day := 1; day <= 12; day++ {
-        song += Verse(day)
+        song := Verse(day)
+        buffer.WriteString(song)
+        buffer.WriteString("\n")
     }
-    return song
+
+    return buffer.String()
 }
 
 func Verse(day int) string {
-    ordinalString, _ := GetOrdinalString(day)
-    first :=  fmt.Sprintf(SPRINTF_PREFIX, ordinalString)
-    other := RecursiveVerseBuild(day-1)
-    return first + other
+    buffer := bytes.Buffer{}
+
+    firstVerse, _ := GetVerseStart(day)
+    buffer.WriteString(firstVerse)
+
+    if needsMoreGifts := (day-1 > 0); needsMoreGifts {
+        RecursiveVerseBuild(day-1, &buffer)
+    }
+
+    buffer.WriteString(".")
+    return buffer.String()
 }
 
-func RecursiveVerseBuild(day int, writer io.Writer) string {
+func RecursiveVerseBuild(day int, writer io.Writer) {
     if day == 1 {
-        return ", and" + GIFTS[day] + "\n"
+        verse := ", and " + GIFTS[day-1]
+        writer.Write([]byte(verse))
+        return
     }
-    return ", " + GIFTS[day] + RecursiveVerseBuild(day-1)
+    verse := ", " + GIFTS[day-1]
+    writer.Write([]byte(verse))
+    RecursiveVerseBuild(day-1, writer)
 }
