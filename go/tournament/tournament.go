@@ -61,10 +61,10 @@ func HandleLineTokens(t1, t2, results string, statsList *TeamStatsList) error {
 
 // writing
 func WriteTeamStats(statsList *TeamStatsList, writer io.Writer) error {
-    sortedStats := statsList.GetSortedTeamStats()
-    if len(sortedStats) == 0 {
+    if len(statsList.teams) == 0 {
         return nil
     }
+    sortedStats := statsList.GetSortedTeamStats()
 
     buffer := bufio.NewWriter(writer)
     defer buffer.Flush()
