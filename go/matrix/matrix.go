@@ -31,7 +31,7 @@ func New(matrixString string) (Matrix, error) {
 
 func CreateEmptyMatrix(m, n int) Matrix {
 	matrix := make([][]int, m)
-	for row, _ := range matrix {
+	for row := range matrix {
 		matrix[row] = make([]int, n)
 	}
 	return Matrix(matrix)
